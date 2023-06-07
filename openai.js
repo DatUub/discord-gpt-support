@@ -325,4 +325,4 @@ console.log(`User query from ${author.username} categorized as tech support.`);
 
   console.log('Message sent');
 
-  return message;
+  return newMessage;
