@@ -1,3 +1,92 @@
+// authenticates you with the API standard library
+const lib = require('lib')({token: process.env.STDLIB_SECRET_TOKEN});
+const cosineSimilarity = require('compute-cosine-similarity');
+
+
+// Some parsing for ease of text manipulation
+let event = context.params.event;
+let mentions = event.mentions;
+let botMention = mentions.find((mention) => mention.bot);
+let content = event.content;
+let author = event.author;
+let userRoles = event.member.roles;
+let result = await lib.discord.users['@0.2.1'].me.status.update({
+  activity_name: `Mention Me For Help With Fractal Client`,
+  activity_type: 'WATCHING',
+  status: 'ONLINE'
+});
+
+// Fetch the guild's role information
+let guildRoles = await lib.discord.guilds['@0.2.4'].roles.list({
+  guild_id: event.guild_id,
+});
+
+const botHelpChannelName = 'bot-help';
+let channel = await lib.discord.channels['@0.3.4'].retrieve({
+  channel_id: event.channel_id,
+});
+
+
+// Find the user's OS role
+let userOSRole = 'None';
+for (let userRole of userRoles) {
+  let role = guildRoles.find((guildRole) => guildRole.id === userRole);
+  if (
+    role &&
+    (role.name.includes('Windows') ||
+      role.name.includes('Mac') ||
+      role.name.includes('Linux'))
+  ) {
+    userOSRole = role.name;
+    break;
+  }
+}
+
+let message = content.replace(/<@(\d+)>/gi, ($0, $1) => {
+  let mention = mentions.find((mention) => mention.id === $1);
+  if (mention) {
+    return `<@${mention.username}>`;
+  } else {
+    return `<@:unknown>`;
+  }
+});
+
+console.log(
+  `User OS Role: ${userOSRole}, Message: ${message}, Channel Name: ${channel.name}, Channel ID: ${channel.id}, User: ${author.username}`
+);
+
+// Check if the channel is the bot-help channel
+if (channel.name !== botHelpChannelName) {
+  console.log(`Channel is not bot-help channel. Exiting.`);
+  return; // Exit early, do not execute further actions
+}
+
+// Check if the content is only a mention of the bot
+if (!content || content.trim() === `<@${botMention.username}>`) {
+  console.log(`Content is only a mention of the bot. Exiting.`);
+  return; // Exit early, do not execute further actions
+}
+
+if (!(userOSRole === 'Windows' || userOSRole === 'Linux' || userOSRole === 'MacOS')) {
+  console.log(`User does not have an OS role. Exiting.`);
+  return; // Exit early, do not execute further actions
+}
+
+console.log(`Passed Tests`);
+
+
+
+
+// Warn the user if something weird is up with the app
+let warnEmbeds = [];
+
+// If the content starts with the bot username, trim it
+content = content.startsWith(`<@${botMention.username}>`)
+  ? content.slice(`<@${botMention.username}>`.length).trim()
+  : content;
+
+let userQuery = content;
+
 // We'll fetch the user embedding and our Google Sheets Q&A at the same time
 // This will save us some execution time
 let [embeddingResult, googleSheetQuery] = await Promise.all([
@@ -54,7 +143,6 @@ let [embeddingResult, googleSheetQuery] = await Promise.all([
 ]);
 
 let userEmbedding = embeddingResult.data[0].embedding
-
 
 console.log(`User query from ${author.username} categorized as tech support.`);
   // concatenate all of our required embeddings together
