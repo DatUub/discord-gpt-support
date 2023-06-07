@@ -313,7 +313,7 @@ console.log(`User query from ${author.username} categorized as tech support.`);
 
   console.log(`Generated response: ${responseText}`);
 
-  let message = await lib.discord.channels['@0.3.4'].messages.create({
+  let newMessage = await lib.discord.channels['@0.3.4'].messages.create({
     channel_id: `${context.params.event.channel_id}`,
     content: `${responseText}`,
     message_reference: {
